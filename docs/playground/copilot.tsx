@@ -27,7 +27,7 @@ import { Button, GetProp, GetRef, Popover, Skeleton, message } from 'antd';
 import { createStyles } from 'antd-style';
 import React, { useState } from 'react';
 
-const useStyle = createStyles(({ css }) => {
+const useStyle = createStyles(({ token, css }) => {
   return {
     copilot: css`
       width: 100%;
@@ -39,7 +39,7 @@ const useStyle = createStyles(({ css }) => {
     copilotWorkarea: css`
       flex: 1;
       height: 100%;
-      background: #eef0f4;
+      background: ${token.colorBgLayout};
     `,
     workareaHeader: css`
       height: 24px;
@@ -47,12 +47,12 @@ const useStyle = createStyles(({ css }) => {
       align-items: center;
       justify-content: space-between;
       padding: 14px 48px 14px 28px;
-      border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+      border-bottom: 1px solid ${token.colorBorder};
     `,
     headerTitle: css`
       font-weight: 600;
       font-size: 15px;
-      color: #102953;
+      color: ${token.colorText};
     `,
     headerButton: css`
       background-image: linear-gradient(78deg, #8054f2 7%, #3895da 95%);
@@ -70,7 +70,7 @@ const useStyle = createStyles(({ css }) => {
       overflow: auto;
       height: calc(100% - 32px - 32px - 52px);
       margin: 16px 48px;
-      background: #fff;
+      background: ${token.colorBgContainer};
       padding: 16px;
     `,
     copilotChat: css`
@@ -80,7 +80,7 @@ const useStyle = createStyles(({ css }) => {
     chatHeader: css`
       height: 24px;
       width: calc(100% - 32px);
-      border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+      border-bottom: 1px solid ${token.colorBorder};
       display: flex;
       align-items: center;
       justify-content: space-between;
@@ -96,9 +96,9 @@ const useStyle = createStyles(({ css }) => {
     `,
     chatWelcome: css`
       padding: 12px 16px;
-      background-image: linear-gradient(107deg, #f2f9fe 0%, #f7f3ff 100%);
       border-radius: 2px 12px 12px 12px;
       margin-bottom: 12px;
+      background: ${token.colorBgTextHover};
     `,
     question: css`
       padding: 12px;
@@ -108,11 +108,11 @@ const useStyle = createStyles(({ css }) => {
       align-items: center;
       cursor: pointer;
       transition: all 0.3s;
-      border: 1px solid rgba(0, 0, 0, 0.1);
+      border: 1px solid ${token.colorBorder};
       width: fit-content;
 
       &:hover {
-        background: rgba(0, 0, 0, 0.05);
+        opacity: 0.8;
       }
     `,
     sendArea: css`
@@ -128,10 +128,11 @@ const useStyle = createStyles(({ css }) => {
       margin-bottom: 8px;
       gap: 8px;
     `,
+    userMessage: css``,
   };
 });
 
-const mockSessionList = [
+const MOCK_SESSION_LIST = [
   {
     key: '5',
     label: '新会话',
@@ -158,7 +159,7 @@ const mockSessionList = [
     group: '昨天',
   },
 ];
-const mockSuggestions = [
+const MOCK_SUGGESTIONS = [
   { label: 'Write a report', value: 'report' },
   { label: 'Draw a picture', value: 'draw' },
   {
@@ -171,7 +172,7 @@ const mockSuggestions = [
     ],
   },
 ];
-const mockQuestions = [
+const MOCK_QUESTIONS = [
   'Ant Design X 全新升级了什么？',
   'Ant Design X 组件资产有哪些？',
   '如何快速安装和引入组件？',
@@ -187,7 +188,7 @@ const Copilot = () => {
   const [loading, setLoading] = useState(false);
   const [attachmentsOpen, setAttachmentsOpen] = useState(false);
   const [files, setFiles] = React.useState<GetProp<AttachmentsProps, 'items'>>([]);
-  const [sessionList] = React.useState<Conversation[]>(mockSessionList);
+  const [sessionList] = React.useState<Conversation[]>(MOCK_SESSION_LIST);
   const [curSession, setCurSession] = React.useState(sessionList[0].key);
 
   const [agent] = useXAgent<BubbleDataType>({
@@ -311,13 +312,6 @@ const Copilot = () => {
                 },
                 user: {
                   placement: 'end',
-                  styles: {
-                    content: {
-                      background: '#ffffff',
-                      boxShadow:
-                        '0px 2px 4px 0px #0000000a, 0px 0px 6px -4px #0000000a, 0px 0px 2px 0px #0000000d',
-                    },
-                  },
                 },
               }}
             />
@@ -329,8 +323,9 @@ const Copilot = () => {
                 description="Base on Ant Design, AGI product interface solution, create a better intelligent vision~"
                 className={styles.chatWelcome}
               />
-              <span style={{ color: 'rgba(0, 0, 0, 0.7)', marginTop: 20 }}>我可以帮您：</span>
-              {mockQuestions.map((i) => (
+
+              <span>我可以帮您：</span>
+              {MOCK_QUESTIONS.map((i) => (
                 <div className={styles.question} key={i} onClick={() => handleUserSubmit(i)}>
                   {i}
                 </div>
@@ -347,7 +342,7 @@ const Copilot = () => {
           </div>
 
           <Suggestion
-            items={mockSuggestions}
+            items={MOCK_SUGGESTIONS}
             onSelect={(itemVal) => {
               setInputValue(`[${itemVal}]:`);
             }}

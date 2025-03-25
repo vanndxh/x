@@ -1,9 +1,10 @@
 ---
 group:
   title: Sample
-  order: 0
+  order: 1
 title: Copilot
-description: Natural language is dominant.
+description: A sample room in copilot mode
+order: 1
 ---
 
 <code src="./copilot.tsx" compact></code>
