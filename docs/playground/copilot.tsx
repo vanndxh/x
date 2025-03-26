@@ -30,153 +30,6 @@ import { Button, GetProp, GetRef, Popover, Skeleton, message } from 'antd';
 import { createStyles } from 'antd-style';
 import React, { useState } from 'react';
 
-const useWorkareaStyle = createStyles(({ token, css }) => {
-  return {
-    workarea: css`
-      flex: 1;
-      height: 100%;
-      background: ${token.colorBgLayout};
-      display: flex;
-      flex-direction: column;
-    `,
-    workareaHeader: css`
-      height: 24px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 14px 48px 14px 28px;
-      border-bottom: 1px solid ${token.colorBorder};
-    `,
-    headerTitle: css`
-      font-weight: 600;
-      font-size: 15px;
-      color: ${token.colorText};
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    `,
-    headerButton: css`
-      background-image: linear-gradient(78deg, #8054f2 7%, #3895da 95%);
-      border-radius: 12px;
-      height: 24px;
-      width: 93px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: #fff;
-      cursor: pointer;
-      font-size: 12px;
-      font-weight: 600;
-      line-height: 24px;
-      transition: all 0.3s;
-
-      &:hover {
-        opacity: 0.8;
-      }
-    `,
-    workareaBody: css`
-      border-radius: 16px;
-      flex: 1;
-      background: ${token.colorBgContainer};
-      padding: 16px;
-    `,
-  };
-});
-
-const useStyle = createStyles(({ token, css }) => {
-  return {
-    copilotWrapper: css`
-      width: 100%;
-      min-width: 1000px;
-      height: 100vh;
-      display: flex;
-      border-radius: 16px;
-    `,
-    copilotChat: css`
-      position: relative;
-      height: 100%;
-      display: flex;
-      flex-direction: column;
-      background: ${token.colorBgContainer};
-    `,
-    // chatHeader 样式
-    chatHeader: css`
-      height: 24px;
-      width: calc(100% - 32px);
-      border-bottom: 1px solid ${token.colorBorder};
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 14px 16px;
-    `,
-    headerTitle: css`
-      font-weight: 600;
-      font-size: 15px;
-      color: ${token.colorText};
-    `,
-    headerAction: css`
-      display: flex;
-      align-items: center;
-    `,
-    conversations: css`
-      .ant-conversations-list {
-        padding-inline-start: 0;
-      }
-    `,
-    // chatList 样式
-    chatList: css`
-      overflow: auto;
-      padding: 16px;
-      flex: 1;
-    `,
-    chatWelcome: css`
-      padding: 12px 16px;
-      border-radius: 2px 12px 12px 12px;
-      margin-bottom: 12px;
-      background: ${token.colorBgTextHover};
-    `,
-    questionTip: css`
-      color: ${token.colorTextDescription};
-      font-size: 14px;
-    `,
-    question: css`
-      padding: 12px;
-      border-radius: 12px;
-      margin-top: 12px;
-      display: flex;
-      align-items: center;
-      cursor: pointer;
-      transition: all 0.3s;
-      border: 1px solid ${token.colorBorder};
-      width: fit-content;
-      font-size: 14px;
-      color: ${token.colorTextDescription};
-      &:hover {
-        opacity: 0.8;
-      }
-    `,
-    // chatSend 样式
-    chatSend: css`
-      padding: 12px;
-      width: calc(100% - 24px);
-
-      .ant-sender-header-title {
-        color: ${token.colorText};
-      }
-    `,
-    sendAction: css`
-      display: flex;
-      align-items: center;
-      margin-bottom: 8px;
-      gap: 8px;
-    `,
-    speechButton: css`
-      font-size: 24px;
-      color: ${token.colorText} !important;
-    `,
-  };
-});
-
 const MOCK_SESSION_LIST = [
   {
     key: '5',
@@ -223,13 +76,103 @@ const MOCK_QUESTIONS = [
   '如何快速安装和引入组件？',
 ];
 
-const Copilot = () => {
-  const { styles } = useStyle();
-  const { styles: workareaStyles } = useWorkareaStyle();
+const useCopilotStyle = createStyles(({ token, css }) => {
+  return {
+    copilotChat: css`
+      position: relative;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      background: ${token.colorBgContainer};
+      box-sizing: border-box;
+    `,
+    // chatHeader 样式
+    chatHeader: css`
+      height: 24px;
+      border-bottom: 1px solid ${token.colorBorder};
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 10px 14px 16px;
+    `,
+    headerTitle: css`
+      font-weight: 600;
+      font-size: 15px;
+      color: ${token.colorText};
+    `,
+    headerAction: css`
+      display: flex;
+      align-items: center;
+    `,
+    headerButton: css`
+      font-size: 18px;
+    `,
+    conversations: css`
+      .ant-conversations-list {
+        padding-inline-start: 0;
+      }
+    `,
+    // chatList 样式
+    chatList: css`
+      overflow: auto;
+      padding: 16px;
+      flex: 1;
+    `,
+    chatWelcome: css`
+      padding: 12px 16px;
+      border-radius: 2px 12px 12px 12px;
+      background: ${token.colorBgTextHover};
+      margin-bottom: 16px;
+    `,
+    questionTip: css`
+      color: ${token.colorTextDescription};
+      font-size: 14px;
+    `,
+    question: css`
+      height: 42px;
+      border-radius: 12px;
+      margin-top: 12px;
+      display: flex;
+      padding: 0 12px;
+      align-items: center;
+      cursor: pointer;
+      transition: all 0.3s;
+      border: 1px solid ${token.colorBorder};
+      width: fit-content;
+      font-size: 14px;
+      color: ${token.colorText};
+      &:hover {
+        opacity: 0.8;
+      }
+    `,
+    // chatSend 样式
+    chatSend: css`
+      padding: 12px;
+    `,
+    sendAction: css`
+      display: flex;
+      align-items: center;
+      margin-bottom: 12px;
+      gap: 8px;
+    `,
+    speechButton: css`
+      font-size: 24px;
+      color: ${token.colorText} !important;
+    `,
+  };
+});
+
+interface CopilotChatProps {
+  copilotOpen: boolean;
+  setCopilotOpen: (open: boolean) => void;
+}
+
+const CopilotChat = (props: CopilotChatProps) => {
+  const { copilotOpen, setCopilotOpen } = props;
+  const { styles } = useCopilotStyle();
   const attachmentsRef = React.useRef<GetRef<typeof Attachments>>(null);
 
   // ==================== State ====================
-  const [copilotOpen, setCopilotOpen] = useState(true);
 
   const [sessionList] = useState<Conversation[]>(MOCK_SESSION_LIST);
   const [curSession, setCurSession] = useState(sessionList[0].key);
@@ -302,6 +245,7 @@ const Copilot = () => {
               message.error('当前已是新对话');
             }
           }}
+          className={styles.headerButton}
         />
         <Popover
           placement="bottom"
@@ -319,9 +263,14 @@ const Copilot = () => {
             />
           }
         >
-          <Button type="text" icon={<CommentOutlined />} />
+          <Button type="text" icon={<CommentOutlined />} className={styles.headerButton} />
         </Popover>
-        <Button type="text" icon={<CloseOutlined />} onClick={() => setCopilotOpen(false)} />
+        <Button
+          type="text"
+          icon={<CloseOutlined />}
+          onClick={() => setCopilotOpen(false)}
+          className={styles.headerButton}
+        />
       </div>
     </div>
   );
@@ -445,36 +394,7 @@ const Copilot = () => {
     </div>
   );
 
-  const Workarea = (
-    <div className={workareaStyles.workarea}>
-      <div className={workareaStyles.workareaHeader}>
-        <div className={workareaStyles.headerTitle}>
-          <img
-            src="https://mdn.alipayobjects.com/huamei_iwk9zp/afts/img/A*eco6RrQhxbMAAAAAAAAAAAAADgCCAQ/original"
-            draggable={false}
-            alt="logo"
-            width={20}
-            height={20}
-          />
-          Ant Design X
-        </div>
-        {!copilotOpen && (
-          <div onClick={() => setCopilotOpen(true)} className={workareaStyles.headerButton}>
-            ✨ AI Copilot
-          </div>
-        )}
-      </div>
-
-      <div
-        className={workareaStyles.workareaBody}
-        style={{ margin: copilotOpen ? 16 : '16px 48px' }}
-      >
-        <Skeleton />
-      </div>
-    </div>
-  );
-
-  const CopilotChat = (
+  return (
     <div className={styles.copilotChat} style={{ width: copilotOpen ? 400 : 0 }}>
       {/** 对话区 - header */}
       {ChatHeader}
@@ -486,15 +406,107 @@ const Copilot = () => {
       {ChatSend}
     </div>
   );
+};
+
+const useWorkareaStyle = createStyles(({ token, css }) => {
+  return {
+    copilotWrapper: css`
+      width: 100%;
+      min-width: 1000px;
+      height: 100vh;
+      display: flex;
+      border-radius: 16px;
+    `,
+    workarea: css`
+      flex: 1;
+      height: 100%;
+      background: ${token.colorBgLayout};
+      display: flex;
+      flex-direction: column;
+    `,
+    workareaHeader: css`
+      height: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 48px 14px 28px;
+      border-bottom: 1px solid ${token.colorBorder};
+    `,
+    headerTitle: css`
+      font-weight: 600;
+      font-size: 15px;
+      color: ${token.colorText};
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    `,
+    headerButton: css`
+      background-image: linear-gradient(78deg, #8054f2 7%, #3895da 95%);
+      border-radius: 12px;
+      height: 24px;
+      width: 93px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 600;
+      line-height: 24px;
+      transition: all 0.3s;
+
+      &:hover {
+        opacity: 0.8;
+      }
+    `,
+    workareaBody: css`
+      border-radius: 16px;
+      flex: 1;
+      background: ${token.colorBgContainer};
+      padding: 16px;
+    `,
+  };
+});
+
+const Copilot = () => {
+  const { styles: workareaStyles } = useWorkareaStyle();
+
+  // ==================== State =================
+  const [copilotOpen, setCopilotOpen] = useState(true);
 
   // ==================== Render =================
   return (
-    <div className={styles.copilotWrapper}>
+    <div className={workareaStyles.copilotWrapper}>
       {/** 左侧工作区 */}
-      {Workarea}
+      <div className={workareaStyles.workarea}>
+        <div className={workareaStyles.workareaHeader}>
+          <div className={workareaStyles.headerTitle}>
+            <img
+              src="https://mdn.alipayobjects.com/huamei_iwk9zp/afts/img/A*eco6RrQhxbMAAAAAAAAAAAAADgCCAQ/original"
+              draggable={false}
+              alt="logo"
+              width={20}
+              height={20}
+            />
+            Ant Design X
+          </div>
+          {!copilotOpen && (
+            <div onClick={() => setCopilotOpen(true)} className={workareaStyles.headerButton}>
+              ✨ AI Copilot
+            </div>
+          )}
+        </div>
+
+        <div
+          className={workareaStyles.workareaBody}
+          style={{ margin: copilotOpen ? 16 : '16px 48px' }}
+        >
+          <Skeleton />
+        </div>
+      </div>
 
       {/** 右侧对话区 */}
-      {CopilotChat}
+      <CopilotChat copilotOpen={copilotOpen} setCopilotOpen={setCopilotOpen} />
     </div>
   );
 };
