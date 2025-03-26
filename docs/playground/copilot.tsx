@@ -51,6 +51,9 @@ const useWorkareaStyle = createStyles(({ token, css }) => {
       font-weight: 600;
       font-size: 15px;
       color: ${token.colorText};
+      display: flex;
+      align-items: center;
+      gap: 8px;
     `,
     headerButton: css`
       background-image: linear-gradient(78deg, #8054f2 7%, #3895da 95%);
@@ -74,7 +77,6 @@ const useWorkareaStyle = createStyles(({ token, css }) => {
     workareaBody: css`
       border-radius: 16px;
       flex: 1;
-      margin: 16px 48px;
       background: ${token.colorBgContainer};
       padding: 16px;
     `,
@@ -86,7 +88,7 @@ const useStyle = createStyles(({ token, css }) => {
     copilotWrapper: css`
       width: 100%;
       min-width: 1000px;
-      height: 722px;
+      height: 100vh;
       display: flex;
       border-radius: 16px;
     `,
@@ -95,6 +97,7 @@ const useStyle = createStyles(({ token, css }) => {
       height: 100%;
       display: flex;
       flex-direction: column;
+      background: ${token.colorBgContainer};
     `,
     // chatHeader 样式
     chatHeader: css`
@@ -115,6 +118,11 @@ const useStyle = createStyles(({ token, css }) => {
       display: flex;
       align-items: center;
     `,
+    conversations: css`
+      .ant-conversations-list {
+        padding-inline-start: 0;
+      }
+    `,
     // chatList 样式
     chatList: css`
       overflow: auto;
@@ -129,6 +137,7 @@ const useStyle = createStyles(({ token, css }) => {
     `,
     questionTip: css`
       color: ${token.colorTextDescription};
+      font-size: 14px;
     `,
     question: css`
       padding: 12px;
@@ -140,6 +149,8 @@ const useStyle = createStyles(({ token, css }) => {
       transition: all 0.3s;
       border: 1px solid ${token.colorBorder};
       width: fit-content;
+      font-size: 14px;
+      color: ${token.colorTextDescription};
       &:hover {
         opacity: 0.8;
       }
@@ -148,6 +159,10 @@ const useStyle = createStyles(({ token, css }) => {
     chatSend: css`
       padding: 12px;
       width: calc(100% - 24px);
+
+      .ant-sender-header-title {
+        color: ${token.colorText};
+      }
     `,
     sendAction: css`
       display: flex;
@@ -299,6 +314,8 @@ const Copilot = () => {
               activeKey={curSession}
               groupable
               onActiveChange={setCurSession}
+              styles={{ item: { padding: '0 8px' } }}
+              className={styles.conversations}
             />
           }
         >
@@ -438,7 +455,6 @@ const Copilot = () => {
             alt="logo"
             width={20}
             height={20}
-            style={{ marginRight: 8 }}
           />
           Ant Design X
         </div>
@@ -449,7 +465,10 @@ const Copilot = () => {
         )}
       </div>
 
-      <div className={workareaStyles.workareaBody}>
+      <div
+        className={workareaStyles.workareaBody}
+        style={{ margin: copilotOpen ? 16 : '16px 48px' }}
+      >
         <Skeleton />
       </div>
     </div>
