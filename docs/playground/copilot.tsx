@@ -1,14 +1,13 @@
 import {
   AppstoreAddOutlined,
-  AudioOutlined,
   CloseOutlined,
   CloudUploadOutlined,
   CommentOutlined,
   CopyOutlined,
   DislikeOutlined,
   LikeOutlined,
-  LinkOutlined,
   OpenAIFilled,
+  PaperClipOutlined,
   PlusOutlined,
   ProductOutlined,
   ReloadOutlined,
@@ -155,6 +154,10 @@ const useStyle = createStyles(({ token, css }) => {
       align-items: center;
       margin-bottom: 8px;
       gap: 8px;
+    `,
+    speechButton: css`
+      font-size: 24px;
+      color: ${token.colorText} !important;
     `,
   };
 });
@@ -405,16 +408,16 @@ const Copilot = () => {
             prefix={
               <Button
                 type="text"
-                icon={<LinkOutlined />}
+                icon={<PaperClipOutlined style={{ fontSize: 24 }} />}
                 onClick={() => setAttachmentsOpen(!attachmentsOpen)}
               />
             }
             onPasteFile={onPasteFile}
             actions={(_, info) => {
-              const { SendButton, LoadingButton } = info.components;
+              const { SendButton, LoadingButton, SpeechButton } = info.components;
               return (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                  <Button type="text" icon={<AudioOutlined style={{ fontSize: 24 }} />} />
+                <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                  <SpeechButton className={styles.speechButton} />
                   {loading ? <LoadingButton type="default" /> : <SendButton type="primary" />}
                 </div>
               );
