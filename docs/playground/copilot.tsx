@@ -1,4 +1,6 @@
 import {
+  AppstoreAddOutlined,
+  AudioOutlined,
   CloseOutlined,
   CloudUploadOutlined,
   CommentOutlined,
@@ -8,11 +10,13 @@ import {
   LinkOutlined,
   OpenAIFilled,
   PlusOutlined,
+  ProductOutlined,
   ReloadOutlined,
+  ScheduleOutlined,
 } from '@ant-design/icons';
 import {
   Attachments,
-  AttachmentsProps,
+  type AttachmentsProps,
   Bubble,
   Conversations,
   Sender,
@@ -21,25 +25,20 @@ import {
   useXAgent,
   useXChat,
 } from '@ant-design/x';
-import { BubbleDataType } from '@ant-design/x/es/bubble/BubbleList';
-import { Conversation } from '@ant-design/x/es/conversations';
+import type { BubbleDataType } from '@ant-design/x/es/bubble/BubbleList';
+import type { Conversation } from '@ant-design/x/es/conversations';
 import { Button, GetProp, GetRef, Popover, Skeleton, message } from 'antd';
 import { createStyles } from 'antd-style';
 import React, { useState } from 'react';
 
-const useStyle = createStyles(({ token, css }) => {
+const useWorkareaStyle = createStyles(({ token, css }) => {
   return {
-    copilot: css`
-      width: 100%;
-      min-width: 1000px;
-      height: 722px;
-      display: flex;
-      border-radius: 16px;
-    `,
-    copilotWorkarea: css`
+    workarea: css`
       flex: 1;
       height: 100%;
       background: ${token.colorBgLayout};
+      display: flex;
+      flex-direction: column;
     `,
     workareaHeader: css`
       height: 24px;
@@ -57,9 +56,17 @@ const useStyle = createStyles(({ token, css }) => {
     headerButton: css`
       background-image: linear-gradient(78deg, #8054f2 7%, #3895da 95%);
       border-radius: 12px;
+      height: 24px;
+      width: 93px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
       color: #fff;
       cursor: pointer;
-      padding: 0 8px;
+      font-size: 12px;
+      font-weight: 600;
+      line-height: 24px;
+      transition: all 0.3s;
 
       &:hover {
         opacity: 0.8;
@@ -67,16 +74,30 @@ const useStyle = createStyles(({ token, css }) => {
     `,
     workareaBody: css`
       border-radius: 16px;
-      overflow: auto;
-      height: calc(100% - 32px - 32px - 52px);
+      flex: 1;
       margin: 16px 48px;
       background: ${token.colorBgContainer};
       padding: 16px;
     `,
+  };
+});
+
+const useStyle = createStyles(({ token, css }) => {
+  return {
+    copilotWrapper: css`
+      width: 100%;
+      min-width: 1000px;
+      height: 722px;
+      display: flex;
+      border-radius: 16px;
+    `,
     copilotChat: css`
       position: relative;
       height: 100%;
+      display: flex;
+      flex-direction: column;
     `,
+    // chatHeader 样式
     chatHeader: css`
       height: 24px;
       width: calc(100% - 32px);
@@ -86,19 +107,29 @@ const useStyle = createStyles(({ token, css }) => {
       justify-content: space-between;
       padding: 14px 16px;
     `,
+    headerTitle: css`
+      font-weight: 600;
+      font-size: 15px;
+      color: ${token.colorText};
+    `,
     headerAction: css`
       display: flex;
       align-items: center;
     `,
-    chatMessage: css`
+    // chatList 样式
+    chatList: css`
       overflow: auto;
       padding: 16px;
+      flex: 1;
     `,
     chatWelcome: css`
       padding: 12px 16px;
       border-radius: 2px 12px 12px 12px;
       margin-bottom: 12px;
       background: ${token.colorBgTextHover};
+    `,
+    questionTip: css`
+      color: ${token.colorTextDescription};
     `,
     question: css`
       padding: 12px;
@@ -110,15 +141,12 @@ const useStyle = createStyles(({ token, css }) => {
       transition: all 0.3s;
       border: 1px solid ${token.colorBorder};
       width: fit-content;
-
       &:hover {
         opacity: 0.8;
       }
     `,
-    sendArea: css`
-      position: absolute;
-      bottom: 0;
-      left: 0;
+    // chatSend 样式
+    chatSend: css`
       padding: 12px;
       width: calc(100% - 24px);
     `,
@@ -128,7 +156,6 @@ const useStyle = createStyles(({ token, css }) => {
       margin-bottom: 8px;
       gap: 8px;
     `,
-    userMessage: css``,
   };
 });
 
@@ -180,32 +207,39 @@ const MOCK_QUESTIONS = [
 
 const Copilot = () => {
   const { styles } = useStyle();
-  message.config({ top: 80 });
+  const { styles: workareaStyles } = useWorkareaStyle();
   const attachmentsRef = React.useRef<GetRef<typeof Attachments>>(null);
 
+  // ==================== State ====================
   const [copilotOpen, setCopilotOpen] = useState(true);
+
+  const [sessionList] = useState<Conversation[]>(MOCK_SESSION_LIST);
+  const [curSession, setCurSession] = useState(sessionList[0].key);
+
   const [inputValue, setInputValue] = useState('');
   const [loading, setLoading] = useState(false);
   const [attachmentsOpen, setAttachmentsOpen] = useState(false);
-  const [files, setFiles] = React.useState<GetProp<AttachmentsProps, 'items'>>([]);
-  const [sessionList] = React.useState<Conversation[]>(MOCK_SESSION_LIST);
-  const [curSession, setCurSession] = React.useState(sessionList[0].key);
+  const [files, setFiles] = useState<GetProp<AttachmentsProps, 'items'>>([]);
 
+  // ==================== Runtime ====================
   const [agent] = useXAgent<BubbleDataType>({
     request: async ({ message }, { onSuccess, onUpdate }) => {
       const fullContent = `Streaming output instead of Bubble typing effect. You typed: ${message?.content}`;
       let currentContent = '';
 
-      const id = setInterval(() => {
+      const updateContent = () => {
         currentContent = fullContent.slice(0, currentContent.length + 2);
         onUpdate({ content: currentContent, role: 'ai' });
 
         if (currentContent === fullContent) {
-          clearInterval(id);
           onSuccess({ content: fullContent, role: 'ai' });
           setLoading(false);
+        } else {
+          setTimeout(updateContent, 100);
         }
-      }, 100);
+      };
+
+      setTimeout(updateContent, 100);
     },
   });
 
@@ -213,207 +247,232 @@ const Copilot = () => {
     agent,
   });
 
+  // ==================== Event ====================
   const handleUserSubmit = (val: string) => {
     onRequest({ content: val, role: 'user' });
     setLoading(true);
   };
 
-  return (
-    <div className={styles.copilot}>
-      <div className={styles.copilotWorkarea}>
-        <div className={styles.workareaHeader}>
-          <div className={styles.headerTitle}>
-            <img
-              src="https://mdn.alipayobjects.com/huamei_iwk9zp/afts/img/A*eco6RrQhxbMAAAAAAAAAAAAADgCCAQ/original"
-              draggable={false}
-              alt="logo"
-              width={20}
-              height={20}
-              style={{ marginRight: 6 }}
-            />
-            Ant Design X
-          </div>
-          {!copilotOpen && (
-            <div onClick={() => setCopilotOpen(true)} className={styles.headerButton}>
-              ✨ AI Copilot
-            </div>
-          )}
-        </div>
+  const onPasteFile = (_: File, files: FileList) => {
+    for (const file of files) {
+      attachmentsRef.current?.upload(file);
+    }
+    setAttachmentsOpen(true);
+  };
 
-        <div className={styles.workareaBody}>
-          <Skeleton />
-        </div>
+  const onSenderChange = (val: string, onTrigger: (info?: boolean) => void) => {
+    if (val === '/') {
+      onTrigger();
+    } else if (!val) {
+      onTrigger(false);
+    }
+    setInputValue(val);
+  };
+
+  // ==================== Nodes ====================
+  const ChatHeader = (
+    <div className={styles.chatHeader}>
+      <div className={styles.headerTitle}>✨ AI Copilot</div>
+      <div className={styles.headerAction}>
+        <Button
+          type="text"
+          icon={<PlusOutlined />}
+          onClick={() => {
+            if (messages?.length) {
+              setMessages([]);
+            } else {
+              message.error('当前已是新对话');
+            }
+          }}
+        />
+        <Popover
+          placement="bottom"
+          styles={{ body: { padding: 0, maxHeight: 600 } }}
+          content={
+            <Conversations
+              items={sessionList?.map((i) =>
+                i.key === curSession ? { ...i, label: `[当前会话] ${i.label}` } : i,
+              )}
+              activeKey={curSession}
+              groupable
+              onActiveChange={setCurSession}
+            />
+          }
+        >
+          <Button type="text" icon={<CommentOutlined />} />
+        </Popover>
+        <Button type="text" icon={<CloseOutlined />} onClick={() => setCopilotOpen(false)} />
+      </div>
+    </div>
+  );
+
+  const ChatList = (
+    <div className={styles.chatList}>
+      {messages?.length ? (
+        /** 消息列表 */
+        <Bubble.List
+          items={messages?.map((i) => i.message)}
+          roles={{
+            ai: {
+              placement: 'start',
+              typing: { step: 5, interval: 20 },
+              footer: loading ? null : (
+                <div style={{ display: 'flex' }}>
+                  <Button type="text" size="small" icon={<ReloadOutlined />} />
+                  <Button type="text" size="small" icon={<CopyOutlined />} />
+                  <Button type="text" size="small" icon={<LikeOutlined />} />
+                  <Button type="text" size="small" icon={<DislikeOutlined />} />
+                </div>
+              ),
+            },
+            user: { placement: 'end' },
+          }}
+        />
+      ) : (
+        /** 没有消息时的 welcome */
+        <>
+          <Welcome
+            variant="borderless"
+            title="👋 Hello, I'm Ant Design X"
+            description="Base on Ant Design, AGI product interface solution, create a better intelligent vision~"
+            className={styles.chatWelcome}
+          />
+
+          <span className={styles.questionTip}>我可以帮您：</span>
+          {MOCK_QUESTIONS.map((i) => (
+            <div className={styles.question} key={i} onClick={() => handleUserSubmit(i)}>
+              {i}
+            </div>
+          ))}
+        </>
+      )}
+    </div>
+  );
+
+  const SendHeader = (
+    <Sender.Header
+      title="上传文件"
+      styles={{ content: { padding: 0 } }}
+      open={attachmentsOpen}
+      onOpenChange={setAttachmentsOpen}
+      forceRender
+    >
+      <Attachments
+        ref={attachmentsRef}
+        beforeUpload={() => false}
+        items={files}
+        onChange={({ fileList }) => setFiles(fileList)}
+        placeholder={(type) =>
+          type === 'drop'
+            ? { title: 'Drop file here' }
+            : {
+                icon: <CloudUploadOutlined />,
+                title: 'Upload files',
+                description: 'Click or drag files to this area to upload',
+              }
+        }
+      />
+    </Sender.Header>
+  );
+  const ChatSend = (
+    <div className={styles.chatSend}>
+      <div className={styles.sendAction}>
+        <Button icon={<ScheduleOutlined />} onClick={() => handleUserSubmit('全新升级了什么？')}>
+          了解升级
+        </Button>
+        <Button icon={<ProductOutlined />} onClick={() => handleUserSubmit('组件资产有哪些？')}>
+          组件资产
+        </Button>
+        <Button icon={<AppstoreAddOutlined />}>更多</Button>
       </div>
 
-      <div className={styles.copilotChat} style={{ width: copilotOpen ? 400 : 0 }}>
-        <div className={styles.chatHeader}>
-          <div className={styles.headerTitle}>✨ AI Copilot</div>
-          <div className={styles.headerAction}>
-            <Button
-              type="text"
-              icon={<PlusOutlined />}
-              onClick={() => {
-                if (messages?.length) {
-                  setMessages([]);
-                } else {
-                  message.error('当前已是新对话');
-                }
-              }}
-            />
-            <Popover
-              placement="bottom"
-              styles={{ body: { padding: 0, maxHeight: 600 } }}
-              content={
-                <Conversations
-                  items={sessionList?.map((i) =>
-                    i.key === curSession ? { ...i, label: `[当前会话] ${i.label}` } : i,
-                  )}
-                  activeKey={curSession}
-                  groupable
-                  onActiveChange={setCurSession}
-                />
-              }
-            >
-              <Button type="text" icon={<CommentOutlined />} />
-            </Popover>
-            <Button type="text" icon={<CloseOutlined />} onClick={() => setCopilotOpen(false)} />
-          </div>
-        </div>
-
-        <div
-          className={styles.chatMessage}
-          style={{
-            height: `calc(100% - ${attachmentsOpen ? 370 : 210}px)`,
-          }}
-        >
-          {messages?.length ? (
-            <Bubble.List
-              items={messages?.map((i) => i.message)}
-              roles={{
-                ai: {
-                  placement: 'start',
-                  typing: { step: 5, interval: 20 },
-                  footer: loading ? null : (
-                    <div style={{ display: 'flex' }}>
-                      <Button type="text" size="small">
-                        <ReloadOutlined />
-                      </Button>
-                      <Button type="text" size="small">
-                        <CopyOutlined />
-                      </Button>
-                      <Button type="text" size="small">
-                        <LikeOutlined />
-                      </Button>
-                      <Button type="text" size="small">
-                        <DislikeOutlined />
-                      </Button>
-                    </div>
-                  ),
-                },
-                user: {
-                  placement: 'end',
-                },
-              }}
-            />
-          ) : (
-            <>
-              <Welcome
-                variant="borderless"
-                title="👋 Hello, I'm Ant Design X"
-                description="Base on Ant Design, AGI product interface solution, create a better intelligent vision~"
-                className={styles.chatWelcome}
-              />
-
-              <span>我可以帮您：</span>
-              {MOCK_QUESTIONS.map((i) => (
-                <div className={styles.question} key={i} onClick={() => handleUserSubmit(i)}>
-                  {i}
-                </div>
-              ))}
-            </>
-          )}
-        </div>
-
-        <div className={styles.sendArea}>
-          <div className={styles.sendAction}>
-            <Button onClick={() => handleUserSubmit('全新升级了什么？')}>了解升级</Button>
-            <Button onClick={() => handleUserSubmit('组件资产有哪些？')}>组件资产</Button>
-            <Button>更多</Button>
-          </div>
-
-          <Suggestion
-            items={MOCK_SUGGESTIONS}
-            onSelect={(itemVal) => {
-              setInputValue(`[${itemVal}]:`);
+      {/** 输入框 */}
+      <Suggestion items={MOCK_SUGGESTIONS} onSelect={(itemVal) => setInputValue(`[${itemVal}]:`)}>
+        {({ onTrigger, onKeyDown }) => (
+          <Sender
+            loading={loading}
+            value={inputValue}
+            onChange={(v) => onSenderChange(v, onTrigger)}
+            onSubmit={() => {
+              handleUserSubmit(inputValue);
+              setInputValue('');
             }}
-          >
-            {({ onTrigger, onKeyDown }) => {
+            onCancel={() => setLoading(false)}
+            allowSpeech
+            placeholder="问我问题或输入 / 使用技能"
+            onKeyDown={onKeyDown}
+            header={SendHeader}
+            prefix={
+              <Button
+                type="text"
+                icon={<LinkOutlined />}
+                onClick={() => setAttachmentsOpen(!attachmentsOpen)}
+              />
+            }
+            onPasteFile={onPasteFile}
+            actions={(_, info) => {
+              const { SendButton, LoadingButton } = info.components;
               return (
-                <Sender
-                  loading={loading}
-                  value={inputValue}
-                  onChange={(v) => {
-                    if (v === '/') {
-                      onTrigger();
-                    } else if (!v) {
-                      onTrigger(false);
-                    }
-                    setInputValue(v);
-                  }}
-                  onSubmit={() => {
-                    handleUserSubmit(inputValue);
-                    setInputValue('');
-                  }}
-                  onCancel={() => {
-                    setLoading(false);
-                  }}
-                  allowSpeech
-                  placeholder="问我问题或输入 / 使用技能"
-                  onKeyDown={onKeyDown}
-                  header={
-                    <Sender.Header
-                      title="上传文件"
-                      styles={{ content: { padding: 0 } }}
-                      open={attachmentsOpen}
-                      onOpenChange={setAttachmentsOpen}
-                      forceRender
-                    >
-                      <Attachments
-                        ref={attachmentsRef}
-                        beforeUpload={() => false}
-                        items={files}
-                        onChange={({ fileList }) => setFiles(fileList)}
-                        placeholder={(type) =>
-                          type === 'drop'
-                            ? { title: 'Drop file here' }
-                            : {
-                                icon: <CloudUploadOutlined />,
-                                title: 'Upload files',
-                                description: 'Click or drag files to this area to upload',
-                              }
-                        }
-                      />
-                    </Sender.Header>
-                  }
-                  prefix={
-                    <Button
-                      type="text"
-                      icon={<LinkOutlined />}
-                      onClick={() => setAttachmentsOpen(!attachmentsOpen)}
-                    />
-                  }
-                  onPasteFile={(_, files) => {
-                    for (const file of files) {
-                      attachmentsRef.current?.upload(file);
-                    }
-                    setAttachmentsOpen(true);
-                  }}
-                />
+                <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                  <Button type="text" icon={<AudioOutlined style={{ fontSize: 24 }} />} />
+                  {loading ? <LoadingButton type="default" /> : <SendButton type="primary" />}
+                </div>
               );
             }}
-          </Suggestion>
+          />
+        )}
+      </Suggestion>
+    </div>
+  );
+
+  const Workarea = (
+    <div className={workareaStyles.workarea}>
+      <div className={workareaStyles.workareaHeader}>
+        <div className={workareaStyles.headerTitle}>
+          <img
+            src="https://mdn.alipayobjects.com/huamei_iwk9zp/afts/img/A*eco6RrQhxbMAAAAAAAAAAAAADgCCAQ/original"
+            draggable={false}
+            alt="logo"
+            width={20}
+            height={20}
+            style={{ marginRight: 8 }}
+          />
+          Ant Design X
         </div>
+        {!copilotOpen && (
+          <div onClick={() => setCopilotOpen(true)} className={workareaStyles.headerButton}>
+            ✨ AI Copilot
+          </div>
+        )}
       </div>
+
+      <div className={workareaStyles.workareaBody}>
+        <Skeleton />
+      </div>
+    </div>
+  );
+
+  const CopilotChat = (
+    <div className={styles.copilotChat} style={{ width: copilotOpen ? 400 : 0 }}>
+      {/** 对话区 - header */}
+      {ChatHeader}
+
+      {/** 对话区 - 消息列表 */}
+      {ChatList}
+
+      {/** 对话区 - 输入框 */}
+      {ChatSend}
+    </div>
+  );
+
+  // ==================== Render =================
+  return (
+    <div className={styles.copilotWrapper}>
+      {/** 左侧工作区 */}
+      {Workarea}
+
+      {/** 右侧对话区 */}
+      {CopilotChat}
     </div>
   );
 };
