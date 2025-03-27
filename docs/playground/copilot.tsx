@@ -85,6 +85,7 @@ const useCopilotStyle = createStyles(({ token, css }) => {
       flex-direction: column;
       background: ${token.colorBgContainer};
       box-sizing: border-box;
+      color: ${token.colorText};
     `,
     // chatHeader 样式
     chatHeader: css`
@@ -98,7 +99,6 @@ const useCopilotStyle = createStyles(({ token, css }) => {
     headerTitle: css`
       font-weight: 600;
       font-size: 15px;
-      color: ${token.colorText};
     `,
     headerAction: css`
       display: flex;
@@ -140,7 +140,6 @@ const useCopilotStyle = createStyles(({ token, css }) => {
       border: 1px solid ${token.colorBorder};
       width: fit-content;
       font-size: 14px;
-      color: ${token.colorText};
       &:hover {
         opacity: 0.8;
       }
