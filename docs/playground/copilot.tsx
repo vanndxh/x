@@ -75,6 +75,7 @@ const MOCK_QUESTIONS = [
   'Ant Design X 组件资产有哪些？',
   '如何快速安装和引入组件？',
 ];
+const AGENT_PLACEHOLDER = '内容生成中，请稍后···';
 
 const useCopilotStyle = createStyles(({ token, css }) => {
   return {
@@ -184,27 +185,74 @@ const CopilotChat = (props: CopilotChatProps) => {
   // ==================== Runtime ====================
   const [agent] = useXAgent<BubbleDataType>({
     request: async ({ message }, { onSuccess, onUpdate }) => {
-      const fullContent = `Streaming output instead of Bubble typing effect. You typed: ${message?.content}`;
-      let currentContent = '';
-
-      const updateContent = () => {
-        currentContent = fullContent.slice(0, currentContent.length + 2);
-        onUpdate({ content: currentContent, role: 'ai' });
-
-        if (currentContent === fullContent) {
-          onSuccess({ content: fullContent, role: 'ai' });
-          setLoading(false);
-        } else {
-          setTimeout(updateContent, 100);
+      const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          Authorization:
+            'Bearer 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',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'qwen/qwen2.5-vl-3b-instruct:free',
+          messages: [
+            {
+              role: 'user',
+              content: message?.content,
+            },
+          ],
+          stream: true,
+        }),
+      });
+      const reader = res.body?.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+      let fullContent = '';
+      if (!reader) {
+        onSuccess({ content: 'Response error', role: 'ai' });
+        return;
+      }
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+          while (true) {
+            const lineEnd = buffer.indexOf('\n');
+            if (lineEnd === -1) break;
+            const line = buffer.slice(0, lineEnd).trim();
+            buffer = buffer.slice(lineEnd + 1);
+            if (line.startsWith('data: ')) {
+              const data = line.slice(6);
+              if (data === '[DONE]') {
+                onSuccess({ content: fullContent, role: 'ai' });
+                setLoading(false);
+                break;
+              }
+              try {
+                const parsed = JSON.parse(data);
+                const content = parsed.choices[0].delta.content;
+                if (content) {
+                  fullContent += content;
+                  onUpdate({ content: fullContent, role: 'ai' });
+                }
+              } catch (e) {
+                console.error('e', e);
+              }
+            }
+          }
         }
-      };
-
-      setTimeout(updateContent, 100);
+      } finally {
+        setLoading(false);
+        reader.cancel();
+      }
     },
   });
 
   const { messages, onRequest, setMessages } = useXChat<BubbleDataType, Record<string, any>>({
     agent,
+    requestPlaceholder: {
+      content: AGENT_PLACEHOLDER,
+    },
   });
 
   // ==================== Event ====================
@@ -279,12 +327,26 @@ const CopilotChat = (props: CopilotChatProps) => {
       {messages?.length ? (
         /** 消息列表 */
         <Bubble.List
-          items={messages?.map((i) => i.message)}
+          items={messages?.map((i) => ({
+            ...i.message,
+            styles: {
+              content:
+                i.status === 'loading'
+                  ? {
+                      backgroundImage:
+                        'linear-gradient(90deg, #ff6b23 0%, #af3cb8 31%, #53b6ff 89%)',
+                      backgroundSize: '100% 2px',
+                      backgroundRepeat: 'no-repeat',
+                      backgroundPosition: 'bottom',
+                    }
+                  : {},
+            },
+          }))}
           roles={{
             ai: {
               placement: 'start',
               typing: { step: 5, interval: 20 },
-              footer: loading ? null : (
+              footer: (
                 <div style={{ display: 'flex' }}>
                   <Button type="text" size="small" icon={<ReloadOutlined />} />
                   <Button type="text" size="small" icon={<CopyOutlined />} />
