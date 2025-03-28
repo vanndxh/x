@@ -21,6 +21,7 @@ import {
   Sender,
   Suggestion,
   Welcome,
+  XRequest,
   useXAgent,
   useXChat,
 } from '@ant-design/x';
@@ -184,71 +185,54 @@ const CopilotChat = (props: CopilotChatProps) => {
 
   // ==================== Runtime ====================
   const [agent] = useXAgent<BubbleDataType>({
-    request: async ({ message }, { onSuccess, onUpdate }) => {
-      const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          Authorization:
-            'Bearer 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',
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: 'qwen/qwen2.5-vl-3b-instruct:free',
-          messages: [
-            {
-              role: 'user',
-              content: message?.content,
-            },
-          ],
-          stream: true,
-        }),
-      });
-      const reader = res.body?.getReader();
-      const decoder = new TextDecoder();
-      let buffer = '';
+    request: async (params, { onSuccess, onUpdate }) => {
       let fullContent = '';
-      if (!reader) {
-        onSuccess({ content: 'Response error', role: 'ai' });
-        return;
-      }
-      try {
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          buffer += decoder.decode(value, { stream: true });
-          while (true) {
-            const lineEnd = buffer.indexOf('\n');
-            if (lineEnd === -1) break;
-            const line = buffer.slice(0, lineEnd).trim();
-            buffer = buffer.slice(lineEnd + 1);
-            if (line.startsWith('data: ')) {
-              const data = line.slice(6);
-              if (data === '[DONE]') {
-                onSuccess({ content: fullContent, role: 'ai' });
-                setLoading(false);
-                break;
+
+      const modelRequest = XRequest({
+        baseURL: 'https://api.siliconflow.cn/v1/chat/completions',
+        model: 'deepseek-ai/DeepSeek-R1-Distill-Qwen-7B',
+        dangerouslyApiKey: 'Bearer sk-ravoadhrquyrkvaqsgyeufqdgphwxfheifujmaoscudjgldr',
+      });
+
+      modelRequest.create(
+        {
+          message: params.message,
+          messages: params.messages as Record<string, any>[],
+          stream: true,
+        },
+        {
+          onSuccess: () => {
+            onSuccess({
+              content: fullContent,
+              role: 'assistant',
+            });
+            setLoading(false);
+          },
+          onError: (error) => {
+            console.error('onError', error);
+            setLoading(false);
+          },
+          onUpdate: (msg) => {
+            try {
+              const parsed = JSON.parse(msg?.data);
+              const content = parsed.choices[0].delta.content;
+              if (content) {
+                fullContent += content;
               }
-              try {
-                const parsed = JSON.parse(data);
-                const content = parsed.choices[0].delta.content;
-                if (content) {
-                  fullContent += content;
-                  onUpdate({ content: fullContent, role: 'ai' });
-                }
-              } catch (e) {
-                console.error('e', e);
-              }
+              onUpdate({
+                content: fullContent || AGENT_PLACEHOLDER,
+                role: 'assistant',
+              });
+            } catch (err) {
+              console.error('err', err);
             }
-          }
-        }
-      } finally {
-        setLoading(false);
-        reader.cancel();
-      }
+          },
+        },
+      );
     },
   });
 
-  const { messages, onRequest, setMessages } = useXChat<BubbleDataType, Record<string, any>>({
+  const { messages, onRequest, setMessages } = useXChat<BubbleDataType, BubbleDataType>({
     agent,
     requestPlaceholder: {
       content: AGENT_PLACEHOLDER,
@@ -343,7 +327,7 @@ const CopilotChat = (props: CopilotChatProps) => {
             },
           }))}
           roles={{
-            ai: {
+            assistant: {
               placement: 'start',
               typing: { step: 5, interval: 20 },
               footer: (
