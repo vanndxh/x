@@ -1,5 +1,5 @@
 import { CloudUploadOutlined, LinkOutlined } from '@ant-design/icons';
-import { Sender } from '@ant-design/x';
+import { Sender, XRequest } from '@ant-design/x';
 import { App, Button, Flex, Typography, theme } from 'antd';
 import React from 'react';
 
@@ -8,6 +8,14 @@ const Demo: React.FC = () => {
   const { token } = theme.useToken();
 
   const [open, setOpen] = React.useState(false);
+
+  const modelRequest = XRequest({
+    baseURL: 'https://api.siliconflow.cn/v1/chat/completions',
+    model: 'deepseek-ai/DeepSeek-R1-Distill-Qwen-7B',
+    dangerouslyApiKey: 'Bearer sk-ravoadhrquyrkvaqsgyeufqdgphwxfheifujmaoscudjgldr',
+  });
+
+  console.log(modelRequest);
 
   const headerNode = (
     <Sender.Header title="Upload Sample" open={open} onOpenChange={setOpen}>
